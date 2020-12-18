@@ -1,99 +1,80 @@
 <template>
-  <div class="wrapper">
-    <Grid
-      :key="this.gameString"
-      :rows="this.game.rows"
-      :cols="this.game.cols"
-      :values="this.game.values"
-      :incorrectSquares="this.game.incorrectSquares"
-      :selectedSquare="this.selectedSquare"
-      :gameSquares="this.game.gameSquares"
-      @select-cell="handleSelectCell"
-    />
-    <Controls @click="handleControlClick" />
+  <div class="header">
+    <h1>
+      Vue-Sudoku
+    </h1>
+  </div>
+  <div class="main">
+    <Game />
+  </div>
+  <div class="footer">
+    <p>
+      A online sudoku generator/solver game written with VueJS 3 and TypeScript.
+      Based on
+      <a href="http://norvig.com/sudoku.html"
+        >Solving Every Sudoku Puzzle by Peter Norvig</a
+      >
+    </p>
+    <a href="https://github.com/kaz-yamada/vue-sudoku">Source</a>
   </div>
 </template>
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
 
-import Grid from './components/Grid.vue';
-import Controls from './components/Controls.vue';
-
-import Sudoku from './services/Sudoku';
+import Game from './components/Game.vue';
 
 @Options({
   components: {
-    Controls,
-    Grid
+    Game
   }
 })
-export default class App extends Vue {
-  private game = new Sudoku();
-  private gameString = '';
-  private selectedSquare = '';
-  private isGameOver = false;
-
-  created() {
-    this.gameString = this.game.createNewGame();
-  }
-
-  mounted() {
-    window.addEventListener('keydown', ev => {
-      let value = ev.key;
-
-      if (ev.code === 'Delete' || ev.code === 'Backspace') {
-        value = 'Delete';
-      }
-
-      this.game.setValue(value, this.selectedSquare);
-    });
-  }
-
-  handleControlClick(option: string) {
-    switch (option) {
-      case 'create': {
-        this.gameString = this.game.createNewGame();
-        break;
-      }
-      case 'solve': {
-        this.gameString = this.game.solve();
-        this.isGameOver = true;
-        break;
-      }
-      case 'reset': {
-        this.gameString = '';
-        this.gameString = this.game.resetGame();
-        this.selectedSquare = '';
-        break;
-      }
-      default:
-        console.log(option);
-    }
-  }
-
-  handleSolveGame() {
-    this.gameString = this.game.solve();
-  }
-
-  public handleSelectCell(square: string) {
-    this.selectedSquare = square;
-  }
-}
+export default class App extends Vue {}
 </script>
 
 <style lang="scss">
+$reponsive-width: 768px;
+
+html,
+body {
+  color: #222222;
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: blue;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
-  color: #2c3e50;
+}
+
+.header {
   margin-top: 60px;
 }
 
-.wrapper {
+.main {
   display: flex;
   justify-content: center;
+}
+
+@media screen and (max-width: $reponsive-width) {
+  .main {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
 }
 </style>

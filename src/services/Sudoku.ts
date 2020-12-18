@@ -16,17 +16,19 @@ export default class Sudoku {
   // Track the game
   private _gameString = '';
   private _gameSquares: { [key: string]: boolean } = {};
+  private _isGameOver = false;
 
   // Track user's inputs
   private _values: GridValues = {};
   private _incorrectSquares: { [key: string]: boolean } = {};
+  private _notes: { [key: string]: { [key: string]: boolean } } = {};
 
-  static DIFFICULTY = {
-    easy: 38,
-    medium: 30,
-    hard: 25,
-    'very-hard': 17
-  };
+  static DIFFICULTY = [
+    { name: 'Easy', value: 38 },
+    { name: 'Medium', value: 30 },
+    { name: 'Hard', value: 25 },
+    { name: 'Very hard', value: 17 }
+  ];
 
   constructor() {
     this._rows = Sudoku.ROWS.split('');
@@ -98,7 +100,15 @@ export default class Sudoku {
     return this._gameSquares;
   }
 
-  public setValue(value: string, square: string) {
+  public get notes() {
+    return this._notes;
+  }
+
+  public getSelectedPeers(square: string) {
+    return [...this._peers[square]];
+  }
+
+  public setSquareValue(value: string, square: string) {
     if (!this._gameSquares[square]) {
       if (value === 'Delete') {
         this._values[square] = '.';
@@ -119,6 +129,19 @@ export default class Sudoku {
     }
   }
 
+  public setSquareNote(value: string, square: string) {
+    if (!Sudoku.DIGITS.includes(value)) return;
+
+    if (!this._notes[square]) {
+      this._notes[square] = [...Sudoku.DIGITS].reduce((obj, d) => {
+        obj[d] = false;
+        return obj;
+      }, {} as { [key: string]: boolean });
+    }
+
+    this._notes[square][value] = !this._notes[square][value];
+  }
+
   // Game Controls
   // -------------------------------------------------------------------------
 
@@ -126,7 +149,7 @@ export default class Sudoku {
    *
    * @param difficulty
    */
-  public createNewGame = (difficulty = Sudoku.DIFFICULTY.easy) => {
+  public createNewGame = (difficulty = Sudoku.DIFFICULTY[0].value) => {
     this._incorrectSquares = {};
     this._values = {};
 
@@ -208,6 +231,9 @@ export default class Sudoku {
     const ans = this.search(v);
 
     if (typeof ans === 'object') this._values = { ...ans };
+
+    this._isGameOver = true;
+
     return Object.values(this._values).toString();
   };
 
@@ -373,8 +399,6 @@ export default class Sudoku {
       this._incorrectSquares[square] = conflicts;
 
       return conflicts;
-    } else {
-      console.log(square);
     }
   };
 
