@@ -1,26 +1,47 @@
 <template>
-  <div class="game-wrapper">
-    <div class="game">
-      <table class="game-table" :key="gameString">
-        <tbody>
-          <tr class="game-row" v-for="row in game.rows" :key="row">
-            <td v-for="col in game.cols" :key="col" class="game-col">
-              <Square
-                :value="game.values[row + col]"
-                :isSelected="selectedSquare === row + col"
-                :isGameSquare="game.gameSquares[row + col]"
-                :isHighlighted="peers && peers.has(row + col)"
-                :isIncorrect="game.incorrectSquares[row + col]"
-                :notes="game.notes[row + col]"
-                @click-square="handleSelectSquare(row + col)"
-              />
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <div class="game" :key="gameString">
+    <h2>{{ game.currentDifficulty }}</h2>
+    <div class="game-wrapper">
+      <div class="game-board">
+        <template v-if="game.isGameOver">
+          <div class="win-overlay">
+            <div
+              class="win-overlay-inner"
+              :class="{ 'hide-overlay': !isOverlayVisible }"
+              :key="isOverlayVisible"
+            >
+              <h2>Game Finished!</h2>
+              <button @click="handleControls(['new'])">Start a New Game</button>
+              <button @click="onOverlayClick">
+                View Game
+              </button>
+            </div>
+          </div>
+        </template>
+        <div class="game-inner">
+          <table class="game-table" :class="{ 'game-over': isOverlayVisible }">
+            <tbody>
+              <tr class="game-row" v-for="row in game.rows" :key="row">
+                <td v-for="col in game.cols" :key="col" class="game-col">
+                  <Square
+                    :value="game.values[row + col]"
+                    :square="row + col"
+                    :isSelected="selectedSquare === row + col"
+                    :isGameSquare="game.gameSquares[row + col]"
+                    :isHighlighted="peers && peers.has(row + col)"
+                    :isIncorrect="game.incorrectSquares[row + col]"
+                    :notes="game.notes[row + col]"
+                    @click-square="handleSelectSquare"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <Controls @click="handleControls" :notesMode="isNotesMode" />
     </div>
   </div>
-  <Controls @click="handleControls" :notesMode="isNotesMode" />
 </template>
 
 <script lang="ts">
@@ -45,6 +66,7 @@ export default class Game extends Vue {
   gameString = '';
   selectedSquare = '';
   isNotesMode = false;
+  isOverlayVisible = false;
   selectedPeers: string[] = [];
 
   get peers(): Set<string> {
@@ -61,21 +83,27 @@ export default class Game extends Vue {
 
   handleKeyPress = (e: KeyboardEvent) => {
     let value = e.key;
+
     if (value.substr(0, 5) === 'Arrow') {
       const direction = value.substr(5);
       this.moveSquare(direction);
       return;
     }
 
+    if (value.toLowerCase() === 'n') {
+      this.isNotesMode = !this.isNotesMode;
+    }
+
     if (e.code === 'Delete' || e.code === 'Backspace') {
       value = 'Delete';
     }
 
-    this.onNumberImput(value);
+    this.onInputValue(value);
   };
 
   handleSolveGame = () => {
     this.gameString = this.game.solve();
+    this.handleGameFinished();
   };
 
   handleSelectSquare = (square: string) => {
@@ -86,11 +114,11 @@ export default class Game extends Vue {
   handleControls(args: (string | number)[]) {
     switch (args[0]) {
       case 'numpad': {
-        this.onNumberImput(args[1] as string);
+        this.onInputValue(args[1] as string);
         break;
       }
       case 'delete': {
-        this.game.setSquareValue('Delete', this.selectedSquare);
+        this.onInputValue('Delete');
         break;
       }
       case 'notes': {
@@ -102,13 +130,12 @@ export default class Game extends Vue {
         break;
       }
       case 'solve': {
-        this.gameString = this.game.solve();
+        this.handleSolveGame();
         break;
       }
       case 'reset': {
         this.gameString = '';
         this.gameString = this.game.resetGame();
-        this.selectedSquare = '';
         break;
       }
       default:
@@ -116,13 +143,16 @@ export default class Game extends Vue {
     }
   }
 
-  onNumberImput = (value: string) => {
-    if (this.selectedSquare !== '' && Sudoku.DIGITS.includes(value)) {
-      if (!this.isNotesMode) {
-        this.game.setSquareValue(value, this.selectedSquare);
-      } else {
-        this.game.setSquareNote(value, this.selectedSquare);
-      }
+  onOverlayClick = () => {
+    console.log(this.isOverlayVisible);
+    this.isOverlayVisible = false;
+  };
+
+  onInputValue = (value: string) => {
+    if (!this.game.isGameOver) {
+      this.game.setSquareValue(value, this.selectedSquare, this.isNotesMode);
+    } else {
+      this.handleGameFinished();
     }
   };
 
@@ -152,11 +182,69 @@ export default class Game extends Vue {
       this.selectedPeers = this.game.getSelectedPeers(square);
     }
   };
+
+  handleGameFinished = () => {
+    this.selectedSquare = '';
+    this.isOverlayVisible = true;
+    this.selectedPeers = [];
+    this.gameString = this.game.getCurrentGameString();
+  };
 }
 </script>
 
 <style lang="scss">
 .game-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+
+  h2 {
+    display: flex;
+  }
+}
+
+.win-overlay {
+  position: absolute;
+  z-index: 11;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+
+  h2 {
+    justify-content: center;
+  }
+
+  .win-overlay-inner {
+    display: flex;
+    background: #ffffff;
+    padding: 18px;
+    flex-direction: column;
+
+    &.hide-overlay {
+      display: none;
+    }
+
+    button {
+      border: solid 1px #1489ff;
+      background: #1489ff;
+      color: #ffffff;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 8px;
+      margin-bottom: 1em;
+
+      &:hover {
+        background: #ffffff;
+        color: #1489ff;
+      }
+    }
+  }
+}
+
+.game-board {
   position: relative;
   width: 100%;
   max-width: 500px;
@@ -169,18 +257,13 @@ export default class Game extends Vue {
     padding-bottom: 100%;
   }
 
-  .game {
+  .game-inner {
     position: absolute;
     top: 0;
     right: 0;
     bottom: 0;
     left: 0;
   }
-}
-
-.limit-reached .game-wrapper {
-  opacity: 0;
-  pointer-events: none;
 }
 
 .game-table {
@@ -201,12 +284,16 @@ export default class Game extends Vue {
   &::after {
     content: '';
     position: absolute;
-    left: 33.3333%;
-    width: 33.3333%;
+    left: calc(100% / 3);
+    width: calc(100% / 3);
     top: 0;
     border-left: 2px solid #344861;
     border-right: 2px solid #344861;
     pointer-events: none;
+  }
+
+  &.game-over {
+    border-color: #1489ff;
   }
 
   tbody {
@@ -221,8 +308,8 @@ export default class Game extends Vue {
       content: '';
       position: absolute;
       left: 0;
-      top: 33.3333%;
-      height: 33.4%;
+      top: calc(100% / 3);
+      height: calc(100% / 3);
       border-top: 2px solid #344861;
       border-bottom: 2px solid #344861;
       pointer-events: none;

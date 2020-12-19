@@ -1,7 +1,8 @@
 <template>
   <div
+    :id="'square-' + square"
     class="cell"
-    v-bind:class="{
+    :class="{
       'cell-selected': isSelected,
       'game-square': isGameSquare,
       'highlight-table': isHighlighted,
@@ -19,11 +20,11 @@
     <div class="notes-grid">
       <template v-if="notes && (value === '.' || value === '0')">
         <div
-          :key="name"
+          :key="noteKey"
           class="notes-grid-cell"
-          v-for="(noteValue, name) in notes"
+          v-for="(noteValue, noteKey) in notes"
         >
-          <template v-if="noteValue">{{ name }}</template>
+          <template v-if="noteValue">{{ noteKey }}</template>
         </div>
       </template>
     </div>
@@ -55,12 +56,16 @@ export default class Square extends Vue {
   width: 100%;
   height: 100%;
 
+  &.game-square .cell-value {
+    color: #545454;
+  }
+
   &:not(.game-square) .cell-value {
-    color: #004080;
+    color: #0052a3;
   }
 
   &:not(.game-square).cell-selected .cell-value {
-    color: #002222;
+    color: #000000;
   }
 
   &::after {
@@ -149,12 +154,13 @@ export default class Square extends Vue {
 
   .notes-grid-cell {
     position: relative;
-    flex: 33.3333%;
-    height: 33.3333%;
+    flex: calc(100% / 3);
+    height: calc(100% / 3);
     font-size: 14px;
     line-height: 1;
     justify-content: center;
     align-items: center;
+    display: inline-flex;
   }
 }
 </style>

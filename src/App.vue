@@ -4,6 +4,7 @@
       Vue-Sudoku
     </h1>
   </div>
+
   <div class="main">
     <Game />
   </div>
@@ -15,13 +16,15 @@
         >Solving Every Sudoku Puzzle by Peter Norvig</a
       >
     </p>
-    <a href="https://github.com/kaz-yamada/vue-sudoku">Source</a>
+    <a href="https://github.com/kaz-yamada/vue-sudoku" class="github-link">
+      <img src="./assets/GitHub-Mark-32px.png" />
+      <span>Source</span>
+    </a>
   </div>
 </template>
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
-
 import Game from './components/Game.vue';
 
 @Options({
@@ -66,8 +69,16 @@ a:hover {
 }
 
 .main {
-  display: flex;
-  justify-content: center;
+  width: 100%;
+}
+
+.github-link {
+  display: inline-flex;
+  align-items: center;
+
+  span {
+    padding: 2px 4px;
+  }
 }
 
 @media screen and (max-width: $reponsive-width) {

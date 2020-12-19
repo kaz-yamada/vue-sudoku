@@ -1,5 +1,5 @@
 type GridValues = { [key: string]: string };
-
+type BooleanObject = { [key: string]: boolean };
 export default class Sudoku {
   static GRID_LENGTH = 9;
   static TOTAL_SQUARES = 81;
@@ -15,16 +15,17 @@ export default class Sudoku {
 
   // Track the game
   private _gameString = '';
-  private _gameSquares: { [key: string]: boolean } = {};
+  private _gameSquares: BooleanObject = {};
   private _isGameOver = false;
+  private _currentDifficulty = 0;
 
   // Track user's inputs
   private _values: GridValues = {};
-  private _incorrectSquares: { [key: string]: boolean } = {};
-  private _notes: { [key: string]: { [key: string]: boolean } } = {};
+  private _incorrectSquares: BooleanObject = {};
+  private _notes: { [key: string]: BooleanObject } = {};
 
   static DIFFICULTY = [
-    { name: 'Easy', value: 38 },
+    { name: 'Easy', value: 60 },
     { name: 'Medium', value: 30 },
     { name: 'Hard', value: 25 },
     { name: 'Very hard', value: 17 }
@@ -63,12 +64,13 @@ export default class Sudoku {
 
     this._squares.forEach(s => {
       this._units[s] = this._unitlist.filter(list => list.indexOf(s) > -1);
-      const obj: { [key: string]: boolean } = {};
+
+      const checkSquareMap: BooleanObject = {};
 
       this._peers[s] = this._units[s].reduce((acc, list) => {
         list.forEach(val => {
-          if (obj[val] !== true && val !== s) {
-            obj[val] = true;
+          if (checkSquareMap[val] !== true && val !== s) {
+            checkSquareMap[val] = true;
             acc.push(val);
           }
         });
@@ -80,15 +82,15 @@ export default class Sudoku {
 
   // Setters & Getters
   // -------------------------------------------------------------------------
-  public get values(): GridValues {
+  public get values() {
     return this._values;
   }
 
-  public get rows(): string[] {
+  public get rows() {
     return this._rows;
   }
 
-  public get cols(): string[] {
+  public get cols() {
     return this._cols;
   }
 
@@ -104,39 +106,76 @@ export default class Sudoku {
     return this._notes;
   }
 
+  public get currentDifficulty() {
+    const diff = Sudoku.DIFFICULTY.find(
+      obj => obj.value <= this._currentDifficulty
+    );
+
+    return diff ? diff.name : '';
+  }
+
+  public get isGameOver() {
+    return this._isGameOver;
+  }
+
+  public getCurrentGameString = () => Object.values(this._values).toString();
+
+  /**
+   * Get the list of peers for the square
+   * @param square the square code to find peers for e.g. A1
+   */
   public getSelectedPeers(square: string) {
     return [...this._peers[square]];
   }
 
-  public setSquareValue(value: string, square: string) {
-    if (!this._gameSquares[square]) {
-      if (value === 'Delete') {
-        this._values[square] = '.';
-      } else if (
-        Sudoku.DIGITS.includes(value) &&
-        this._values[square] !== value
-      ) {
-        this._values[square] = value;
+  public getCurrentDigits(value: string) {
+    return Object.keys(this._values).reduce((acc, key) => {
+      if (this._values[key] === value) {
+        acc.push(key);
       }
 
+      return acc;
+    }, [] as string[]);
+  }
+
+  /**
+   *
+   * @param value
+   * @param square
+   */
+  public setSquareValue(value: string, square: string, isNotesMode = false) {
+    if (this._values[square] === value || this._gameSquares[square]) return;
+
+    if (value === 'Delete') {
+      this._values[square] = '.';
+    } else if (Sudoku.DIGITS.includes(value)) {
+      if (isNotesMode) {
+        this.setSquareNote(value, square);
+      } else {
+        this._values[square] = value;
+      }
+    }
+
+    // Check for errors
+    if (!isNotesMode) {
       this.checkPeers(square);
 
-      if (!this._incorrectSquares[square]) {
-        for (const key in this._incorrectSquares) {
-          if (this._incorrectSquares[key]) this.checkPeers(key);
+      for (const key in this._incorrectSquares) {
+        if (this._incorrectSquares[key]) {
+          this.checkPeers(key);
         }
       }
     }
+
+    return false;
   }
 
-  public setSquareNote(value: string, square: string) {
-    if (!Sudoku.DIGITS.includes(value)) return;
-
+  private setSquareNote(value: string, square: string) {
     if (!this._notes[square]) {
       this._notes[square] = [...Sudoku.DIGITS].reduce((obj, d) => {
         obj[d] = false;
         return obj;
-      }, {} as { [key: string]: boolean });
+      }, {} as BooleanObject);
     }
 
     this._notes[square][value] = !this._notes[square][value];
@@ -152,6 +191,9 @@ export default class Sudoku {
   public createNewGame = (difficulty = Sudoku.DIFFICULTY[0].value) => {
     this._incorrectSquares = {};
     this._values = {};
+    this._currentDifficulty = difficulty;
+    this._isGameOver = false;
+    this._notes = {};
 
     this._gameString = this.generatePuzzle(difficulty);
     this.parseGrid(this._gameString);
@@ -190,7 +232,7 @@ export default class Sudoku {
       const ds = [];
 
       for (const sq of this._squares) {
-        if (values[sq].length === 1) ds.push(values[sq]);
+        if (values[sq].length === 1 && ds.length < N) ds.push(values[sq]);
       }
 
       const set = [...new Set(ds)];
@@ -234,7 +276,7 @@ export default class Sudoku {
 
     this._isGameOver = true;
 
-    return Object.values(this._values).toString();
+    return this.getCurrentGameString();
   };
 
   /**
@@ -322,7 +364,6 @@ export default class Sudoku {
 
     // (2) If a unit u is reduced to only one place for a value d, then put it there.
     for (const u of this._units[s]) {
-      // [s for s in u if d in values[s]]
       const dplaces: string[] = [];
       for (const sq of u) {
         if (values[sq].includes(d)) dplaces.push(sq);
@@ -377,29 +418,34 @@ export default class Sudoku {
   };
 
   /**
+   * Checks the peers of the passed square to see if the values
+   * conflict with each other
    *
-   * @param square
+   * @param s
+   *
+   * returns true if there are any conflicting values, false if not
    */
-  public checkPeers = (square: string) => {
-    const peers = this._peers[square];
+  public checkPeers = (s: string) => {
+    const peers = this._peers[s];
+    const value = this.values[s];
 
-    if (peers) {
-      const conflicts = peers.reduce((acc, peerSquare) => {
-        if (
-          this._values[square] !== '.' &&
-          this._values[square] === this._values[peerSquare]
-        ) {
+    if (!peers) return false;
+
+    this._incorrectSquares[s] = peers.reduce(
+      (hasConflict: boolean, peerSquare) => {
+        const peerValue = this._values[peerSquare];
+
+        if (value === peerValue && peerSquare !== '0' && peerValue !== '.') {
+          hasConflict = true;
           this._incorrectSquares[peerSquare] = true;
-          acc = true;
         }
 
-        return acc;
-      }, false);
+        return hasConflict;
+      },
+      false
+    );
 
-      this._incorrectSquares[square] = conflicts;
-
-      return conflicts;
-    }
+    return this._incorrectSquares[s];
   };
 
   // Utils

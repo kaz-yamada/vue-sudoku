@@ -14,8 +14,12 @@
       </div>
       <div class="numpad-row">
         <div class="numpad-bottom">
-          <button class="notes-button" @click="$emit('click', ['notes'])">
-            Notes: {{ notesMode ? 'On' : 'Off' }}
+          <button
+            class="notes-button"
+            :class="{ 'notes-mode-on': notesMode }"
+            @click="$emit('click', ['notes'])"
+          >
+            Notes: <span>{{ notesMode ? 'On' : 'Off' }}</span>
           </button>
           <button class="delete-button" @click="$emit('click', ['delete'])">
             Delete
@@ -25,13 +29,19 @@
     </div>
 
     <div class="game-settings">
-      <button class="new-game-button" @click="toggleDropdown">New Game</button>
+      <button
+        class="new-game-button"
+        :class="{ opened: isDropdownOpen }"
+        @click="toggleDropdown"
+      >
+        New Game
+      </button>
       <div class="dropdown" v-if="isDropdownOpen">
         <div class="dropdown-content">
           <button
+            :key="item"
             class="dropdown-item"
             v-for="item in difficulties"
-            :key="item"
             @click="onClickNew(item.value)"
           >
             {{ item.name }}
@@ -132,6 +142,21 @@ export default class Controls extends Vue {
       height: auto;
     }
   }
+
+  .notes-button {
+    span {
+      background: #8d8d8d;
+      color: #ffffff;
+      padding: 4px;
+      border-radius: 4px;
+    }
+
+    &.notes-mode-on {
+      span {
+        background: #005fbf;
+      }
+    }
+  }
 }
 
 .game-settings {
@@ -157,6 +182,10 @@ export default class Controls extends Vue {
       border-right: 10px solid transparent;
       border-top: 20px solid #222222;
       right: 15px;
+    }
+
+    &.opened::after {
+      transform: rotate(180deg);
     }
   }
 }
