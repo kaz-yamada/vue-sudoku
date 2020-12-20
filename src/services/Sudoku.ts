@@ -25,7 +25,7 @@ export default class Sudoku {
   private _notes: { [key: string]: BooleanObject } = {};
 
   static DIFFICULTY = [
-    { name: 'Easy', value: 4 },
+    { name: 'Easy', value: 40 },
     { name: 'Medium', value: 30 },
     { name: 'Hard', value: 25 },
     { name: 'Very hard', value: 17 }
@@ -236,7 +236,7 @@ export default class Sudoku {
       const ds = [];
 
       for (const sq of this._squares) {
-        if (values[sq].length === 1 && ds.length < N) ds.push(values[sq]);
+        if (values[sq].length === 1) ds.push(values[sq]);
       }
 
       const set = [...new Set(ds)];
