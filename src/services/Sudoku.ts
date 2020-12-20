@@ -25,7 +25,7 @@ export default class Sudoku {
   private _notes: { [key: string]: BooleanObject } = {};
 
   static DIFFICULTY = [
-    { name: 'Easy', value: 60 },
+    { name: 'Easy', value: 4 },
     { name: 'Medium', value: 30 },
     { name: 'Hard', value: 25 },
     { name: 'Very hard', value: 17 }
@@ -118,6 +118,9 @@ export default class Sudoku {
     return this._isGameOver;
   }
 
+  /**
+   * Get the string for the game in the current state
+   */
   public getCurrentGameString = () => Object.values(this._values).toString();
 
   /**
@@ -128,7 +131,14 @@ export default class Sudoku {
     return [...this._peers[square]];
   }
 
-  public getCurrentDigits(value: string) {
+  /**
+   * Get all the square IDs that share the same value
+   * @param s
+   */
+  public getAllSameValues(s: string) {
+    const value = this._values[s];
+    if (!Sudoku.DIGITS.includes(value)) return [];
+
     return Object.keys(this._values).reduce((acc, key) => {
       if (this._values[key] === value) {
         acc.push(key);
@@ -158,16 +168,10 @@ export default class Sudoku {
 
     // Check for errors
     if (!isNotesMode) {
-      this.checkPeers(square);
-
-      for (const key in this._incorrectSquares) {
-        if (this._incorrectSquares[key]) {
-          this.checkPeers(key);
-        }
-      }
+      this._isGameOver = this.checkGame();
     }
 
-    return false;
+    return this._isGameOver;
   }
 
   private setSquareNote(value: string, square: string) {
@@ -246,6 +250,7 @@ export default class Sudoku {
         return str;
       }
     }
+
     // Retry
     return this.generatePuzzle(N);
   };
@@ -426,8 +431,20 @@ export default class Sudoku {
    * returns true if there are any conflicting values, false if not
    */
   public checkPeers = (s: string) => {
+    this.checkSquare(s);
+
+    for (const key in this._incorrectSquares) {
+      if (this._incorrectSquares[key]) {
+        this.checkSquare(key);
+      }
+    }
+
+    return this._incorrectSquares[s];
+  };
+
+  private checkSquare = (s: string) => {
     const peers = this._peers[s];
-    const value = this.values[s];
+    const value = this._values[s];
 
     if (!peers) return false;
 
@@ -446,6 +463,29 @@ export default class Sudoku {
     );
 
     return this._incorrectSquares[s];
+  };
+
+  public checkGame = () => {
+    let isGameOver = true;
+    for (const key in this._values) {
+      const v = this._values[key];
+      const peers = this._peers[key];
+      let hasConflict = false;
+
+      for (const peerSquare of peers) {
+        const peerValue = this._values[peerSquare];
+        if (v === peerValue && peerSquare !== '0' && peerValue !== '.') {
+          this._incorrectSquares[peerSquare] = true;
+          hasConflict = true;
+          isGameOver = false;
+        }
+      }
+
+      isGameOver = v === '.' || v === '0' ? false : isGameOver;
+      this.incorrectSquares[key] = hasConflict;
+    }
+
+    return isGameOver;
   };
 
   // Utils

@@ -28,7 +28,8 @@
                     :square="row + col"
                     :isSelected="selectedSquare === row + col"
                     :isGameSquare="game.gameSquares[row + col]"
-                    :isHighlighted="peers && peers.has(row + col)"
+                    :isPeer="peers && peers.has(row + col)"
+                    :isSameValue="sameValues && sameValues.has(row + col)"
                     :isIncorrect="game.incorrectSquares[row + col]"
                     :notes="game.notes[row + col]"
                     @click-square="handleSelectSquare"
@@ -68,10 +69,7 @@ export default class Game extends Vue {
   isNotesMode = false;
   isOverlayVisible = false;
   selectedPeers: string[] = [];
-
-  get peers(): Set<string> {
-    return new Set(this.selectedPeers);
-  }
+  selectedValues: string[] = [];
 
   created() {
     this.gameString = this.game.createNewGame();
@@ -79,6 +77,14 @@ export default class Game extends Vue {
 
   mounted() {
     window.addEventListener('keydown', this.handleKeyPress);
+  }
+
+  get peers(): Set<string> {
+    return new Set(this.selectedPeers);
+  }
+
+  get sameValues(): Set<string> {
+    return new Set(this.selectedValues);
   }
 
   handleKeyPress = (e: KeyboardEvent) => {
@@ -108,6 +114,7 @@ export default class Game extends Vue {
 
   handleSelectSquare = (square: string) => {
     this.selectedSquare = square;
+    this.selectedValues = this.game.getAllSameValues(square);
     this.selectedPeers = this.game.getSelectedPeers(square);
   };
 
@@ -178,8 +185,7 @@ export default class Game extends Vue {
 
     if (Sudoku.ROWS.includes(row) && col > 0 && col < 10) {
       const square = row + col;
-      this.selectedSquare = square;
-      this.selectedPeers = this.game.getSelectedPeers(square);
+      this.handleSelectSquare(square);
     }
   };
 

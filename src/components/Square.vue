@@ -5,7 +5,8 @@
     :class="{
       'cell-selected': isSelected,
       'game-square': isGameSquare,
-      'highlight-table': isHighlighted,
+      'highlight-peer': isPeer,
+      'highlight-number': isSameValue,
       incorrect: isIncorrect
     }"
     @click="$emit('click-square', square)"
@@ -40,7 +41,8 @@ import { Options, Vue } from 'vue-class-component';
     value: String,
     isGameSquare: Boolean,
     isSelected: Boolean,
-    isHighlighted: Boolean,
+    isPeer: Boolean,
+    isSameValue: Boolean,
     isIncorrect: Boolean,
     notes: Object
   },
@@ -62,10 +64,6 @@ export default class Square extends Vue {
 
   &:not(.game-square) .cell-value {
     color: #0052a3;
-  }
-
-  &:not(.game-square).cell-selected .cell-value {
-    color: #000000;
   }
 
   &::after {
@@ -90,16 +88,21 @@ export default class Square extends Vue {
     border-left: 1px solid #bec6d4;
   }
 
-  &.cell-selected {
-    background-color: #a4d2ff;
-  }
-
-  &.highlight-table {
-    background-color: #dedede;
+  &.highlight-peer {
+    background-color: #f7f7f7;
   }
 
   &.highlight-number {
-    background-color: #fbfcfd;
+    background-color: #c4e1ff;
+  }
+
+  &.cell-selected {
+    background-color: #1489ff;
+
+    .cell-value,
+    .notes-grid-cell {
+      color: #ffffff;
+    }
   }
 
   &.incorrect {
